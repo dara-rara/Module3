@@ -1,4 +1,4 @@
-package org.example;
+package org.naumenHW;
 
 import java.util.ArrayList;
 import java.util.Random;
@@ -7,13 +7,18 @@ import java.util.Scanner;
 public class Task2 {
 
     public void getSortList() {
-        var scanner = new Scanner(System.in);
+        Scanner scanner = new Scanner(System.in);
         System.out.print("Введите количество элементов в списке: ");
-        var n = scanner.nextInt();
+        int n;
+        while (true) {
+            n = scanner.nextInt();
+            if (n > 0) break;
+            else System.out.println("Количество элементов должно быть больше 0");
+        }
 
         ArrayList<Double> list = new ArrayList<>();
-        var random = new Random();
-        for (var i = 0; i < n; i++) {
+        Random random = new Random();
+        for (int i = 0; i < n; i++) {
             list.add(random.nextDouble() * 100);
         }
 
@@ -23,14 +28,14 @@ public class Task2 {
     }
 
     private void bubbleSort(ArrayList<Double> list) {
-        var n = list.size();
+        int n = list.size();
         boolean flag;
-        for (var i = 0; i < n - 1; i++) {
+        for (int i = 0; i < n - 1; i++) {
             flag = false;
             for (var j = 0; j < n - 1 - i; j++) {
                 if (list.get(j) > list.get(j + 1)) {
                     // Меняем элементы местами
-                    var temp = list.get(j);
+                    double temp = list.get(j);
                     list.set(j, list.get(j + 1));
                     list.set(j + 1, temp);
                     flag = true;

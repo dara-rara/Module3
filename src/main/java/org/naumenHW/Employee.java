@@ -1,4 +1,4 @@
-package org.example;
+package org.naumenHW;
 
 public class Employee {
     private String fullName;

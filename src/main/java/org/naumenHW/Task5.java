@@ -1,4 +1,4 @@
-package org.example;
+package org.naumenHW;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -12,6 +12,8 @@ public class Task5 implements Task{
     private final AtomicBoolean running = new AtomicBoolean(false);
     private WatchService watchService;
     private Thread watchThread;
+    private final int maxRetries = 3;
+    private final int retryDelayMillis = 5000;
 
     public Task5(String sourceDir, String targetDir) {
         this.sourceDir = Paths.get(sourceDir);
@@ -32,7 +34,8 @@ public class Task5 implements Task{
             watchService = FileSystems.getDefault().newWatchService();
             sourceDir.register(watchService,
                     StandardWatchEventKinds.ENTRY_CREATE,
-                    StandardWatchEventKinds.ENTRY_MODIFY);
+                    StandardWatchEventKinds.ENTRY_MODIFY,
+                    StandardWatchEventKinds.ENTRY_DELETE);
             syncFolders();
 
             watchThread = new Thread(this::watchChanges);
@@ -73,7 +76,7 @@ public class Task5 implements Task{
         Files.walkFileTree(sourceDir, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                var targetFile = targetDir.resolve(sourceDir.relativize(file));
+                Path targetFile = targetDir.resolve(sourceDir.relativize(file));
                 if (!Files.exists(targetFile) || Files.getLastModifiedTime(file).compareTo(Files.getLastModifiedTime(targetFile)) > 0) {
                     Files.copy(file, targetFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
                     System.out.println("Синхронизирован файл: " + file);
@@ -84,22 +87,30 @@ public class Task5 implements Task{
     }
 
     private void watchChanges() {
+        int retryCount = 0;
         while (running.get()) {
             try {
-                var key = watchService.take();
+                WatchKey key = watchService.take();
                 for (var event : key.pollEvents()) {
                     var kind = event.kind();
+                    System.out.println("Событие: " + kind);
 
                     if (kind == StandardWatchEventKinds.OVERFLOW) {
+                        System.out.println("Произошло событие OVERFLOW, возможна потеря событий.");
                         continue;
                     }
 
-                    var changedFile = sourceDir.resolve((Path) event.context());
-                    var targetFile = targetDir.resolve(sourceDir.relativize(changedFile));
+                    Path changedFile = sourceDir.resolve((Path) event.context());
+                    Path targetFile = targetDir.resolve(sourceDir.relativize(changedFile));
 
                     if (kind == StandardWatchEventKinds.ENTRY_CREATE || kind == StandardWatchEventKinds.ENTRY_MODIFY) {
                         Files.copy(changedFile, targetFile, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
                         System.out.println("Синхронизирован файл: " + changedFile);
+                    } else if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
+                        if (Files.exists(targetFile)) {
+                            Files.delete(targetFile);
+                            System.out.println("Удален файл: " + targetFile);
+                        }
                     }
                 }
                 key.reset();
@@ -111,6 +122,17 @@ public class Task5 implements Task{
                 break;
             } catch (IOException e) {
                 System.out.println("Ошибка при синхронизации файла: " + e.getMessage());
+                retryCount++;
+                if (retryCount >= maxRetries) {
+                    System.out.println("Достигнуто максимальное количество попыток, завершение потока.");
+                    break;
+                }
+                try {
+                    Thread.sleep(retryDelayMillis);
+                } catch (InterruptedException ie) {
+                    System.out.println("Задержка прервана: " + ie.getMessage());
+                    break;
+                }
             }
         }
     }

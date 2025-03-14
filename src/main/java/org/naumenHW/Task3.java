@@ -1,4 +1,4 @@
-package org.example;
+package org.naumenHW;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,7 +6,7 @@ import java.util.Comparator;
 
 public class Task3 {
     public void getSortAscSalary() {
-        List<Employee> employees = new ArrayList<>();
+        List<Employee> employees = new ArrayList<>(5);
         employees.add(new Employee("Печенькин Петр Иванович", 32, "IT", 150000.0));
         employees.add(new Employee("Супов Иван Александрович", 25, "HR", 75000.0));
         employees.add(new Employee("Рисова Анна Владимировна", 24, "Finance", 140000.0));
